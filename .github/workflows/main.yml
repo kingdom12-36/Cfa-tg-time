@@ -1,7 +1,7 @@
 name: Telegram Time Travel Test
 
 on:
-  workflow_dispatch: # تشغيل يدوي بضغطة زر
+  [workflow_dispatch,push] # تشغيل يدوي بضغطة زر
 
 jobs:
   time_travel_experiment:
