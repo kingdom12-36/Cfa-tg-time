@@ -1,89 +1,50 @@
-name: Telegram Absolute Media Type & Time Test
+name: Telegram Stickers & Emojis Ultimate Test
 
 on:
-  workflow_dispatch: # تشغيل يدوي فوري
+  workflow_dispatch:
 
 jobs:
-  ultimate_experiment:
+  sticker_test:
     runs-on: ubuntu-latest
     steps:
-      - name: Install system dependencies
-        run: sudo apt-get install -y jq ffmpeg
+      - name: Install dependencies
+        run: sudo apt-get install -y jq
 
-      - name: Generate Multi-Format Dummy and Real Files
-        run: |
-          # 1. إنشاء الصور الأولية (سوداء ومموهة) بصيغ مختلفة
-          ffmpeg -f lavfi -i color=c=black:s=150x150 -vframes 1 dummy_black.jpg
-          ffmpeg -f lavfi -i color=c=black:s=150x150 -vframes 1 dummy_black.png
-          
-          # 2. إنشاء الصور الحقيقية (البيضاء) المستهدفة للتعديل
-          ffmpeg -f lavfi -i color=c=white:s=150x150 -vframes 1 real_white.jpg
-          ffmpeg -f lavfi -i color=c=white:s=150x150 -vframes 1 real_white.png
-
-          # 3. إنشاء الملفات النصية المبدئية والحقيقية
-          echo "انتظروا الملف النصي المبدئي..." > fake_doc.txt
-          echo "أهلاً.. هذه هي الأسئلة الحقيقية داخل ملف نصي!" > real_doc.txt
-          
-          # 4. إنشاء ملفات بصيغ غريبة عشوائية (.dat)
-          echo "بيانات أولية مؤقتة للأنظمة" > fake_file.dat
-          echo "محتوى مسرب حقيقي ومخفي داخل صيغة غريبة (.dat)" > real_file.dat
-
-      - name: Stage 1 - Send All Initial Media (حجز التوقيت)
+      - name: Send Initial Stickers and Emojis (حجز الوقت)
         id: send_phase
         run: |
           TOKEN="${{ secrets.Token }}"
           CHAT_ID="${{ secrets.Id }}"
           
-          echo "=== [1] إرسال صورة JPG السوداء ==="
-          RES_JPG=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendPhoto" -F "chat_id=${CHAT_ID}" -F "photo=@dummy_black.jpg" -F "caption=انتظار صورة JPG...")
-          echo "JPG_ID=$(echo $RES_JPG | jq '.result.message_id')" >> $GITHUB_ENV
+          # 1. إرسال إيموجي متحرك عادي (مثلاً إيموجي الساعة لحجز الوقت)
+          RES_EMOJI=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "text=⏳")
+          echo "EMOJI_ID=$(echo $RES_EMOJI | jq '.result.message_id')" >> $GITHUB_ENV
           
-          echo "=== [2] إرسال صورة PNG السوداء ==="
-          RES_PNG=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendPhoto" -F "chat_id=${CHAT_ID}" -F "photo=@dummy_black.png" -F "caption=انتظار صورة PNG...")
-          echo "PNG_ID=$(echo $RES_PNG | jq '.result.message_id')" >> $GITHUB_ENV
-          
-          echo "=== [3] إرسال الملف النصي .txt ==="
-          RES_TXT=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendDocument" -F "chat_id=${CHAT_ID}" -F "document=@fake_doc.txt" -F "caption=انتظار ملف TXT...")
-          echo "TXT_ID=$(echo $RES_TXT | jq '.result.message_id')" >> $GITHUB_ENV
+          # 2. إرسال ستيكر رسمي من تليجرام (استخدام File ID لستيكر شهير)
+          # سنرسل ستيكر عادي كمثال (إذا كان لديك معرف ستيكر خاص يمكنك تبديله)
+          RES_STK=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendSticker" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "sticker=CAACAgIAAxkBAAEExwVkh...") # معرف ستيكر تجريبي
+          echo "STK_ID=$(echo $RES_STK | jq '.result.message_id')" >> $GITHUB_ENV
 
-          echo "=== [4] إرسال ملف الصيغة الغريبة .dat ==="
-          RES_DAT=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendDocument" -F "chat_id=${CHAT_ID}" -F "document=@fake_file.dat" -F "caption=انتظار ملف DAT...")
-          echo "DAT_ID=$(echo $RES_DAT | jq '.result.message_id')" >> $GITHUB_ENV
+      - name: Freezing Time (الانتظار دقيقتين)
+        run: sleep 120
 
-      - name: Stage 2 - Freezing Time (الانتظار لمدة 3 دقائق)
-        run: |
-          echo "جيت هوب يقوم الآن بحجز الأوقات على السيرفر.. سينتظر السكربت 180 ثانية تماماً..."
-          sleep 180
-
-      - name: Stage 3 - Mass Execution & Modification (التعديل الشامل)
+      - name: Modify Content (محاولة التعديل المخفي)
         run: |
           TOKEN="${{ secrets.Token }}"
           CHAT_ID="${{ secrets.Id }}"
           
-          echo "=== تعديل وتغيير صورة JPG إلى JPG بيضاء ==="
-          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageMedia" \
-            -F "chat_id=${CHAT_ID}" \
-            -F "message_id=${{ env.JPG_ID }}" \
-            -F "media={\"type\":\"photo\",\"media\":\"attach://photo\",\"caption\":\"تم التعديل: JPG النهائية الحقيقية!\"}" \
-            -F "photo=@real_white.jpg"
+          # محاولة تعديل نص الإيموجي إلى نص الأسئلة
+          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageText" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "message_id=${{ env.EMOJI_ID }}" \
+            -d "text=أهلاً.. هذه هي الأسئلة المسربة بعد الإيموجي!"
 
-          echo "=== تعديل وتغيير صورة PNG إلى PNG بيضاء ==="
-          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageMedia" \
-            -F "chat_id=${CHAT_ID}" \
-            -F "message_id=${{ env.PNG_ID }}" \
-            -F "media={\"type\":\"photo\",\"media\":\"attach://photo\",\"caption\":\"تم التعديل: PNG النهائية الحقيقية!\"}" \
-            -F "photo=@real_white.png"
-
-          echo "=== تعديل الملف النصي .txt ==="
-          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageMedia" \
-            -F "chat_id=${CHAT_ID}" \
-            -F "message_id=${{ env.TXT_ID }}" \
-            -F "media={\"type\":\"document\",\"media\":\"attach://document\",\"caption\":\"تم التعديل: ملف TXT النهائي الحقيقي!\"}" \
-            -F "document=@real_doc.txt"
-
-          echo "=== تعديل ملف الصيغة الغريبة .dat ==="
-          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageMedia" \
-            -F "chat_id=${CHAT_ID}" \
-            -F "message_id=${{ env.DAT_ID }}" \
-            -F "media={\"type\":\"document\",\"media\":\"attach://document\",\"caption\":\"تم التعديل: ملف DAT النهائي الحقيقي!\"}" \
-            -F "document=@real_file.dat"
+          # محاولة تعديل الستيكر واستبداله بنص أو ميديا أخرى
+          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageCaption" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "message_id=${{ env.STK_ID }}" \
+            -d "caption=الأسئلة المسربة الحقيقية!"
