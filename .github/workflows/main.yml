@@ -1,52 +1,75 @@
-name: Telegram Album Media Group Test (Fixed)
+name: Telegram UserBot MTProto Test (All-in-One)
 
 on:
-  workflow_dispatch:
-  push: 
+  workflow_dispatch: # تشغيل يدوي بضغطة زر واحدة
+
 jobs:
-  album_test:
+  userbot_experiment:
     runs-on: ubuntu-latest
     steps:
-      - name: Install jq
-        run: sudo apt-get install -y jq
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Telethon Library
+        run: pip install telethon
 
       - name: Download Tiny Test Images
         run: |
-          # تحميل صور تجريبية صغيرة جداً وجاهزة من الإنترنت لتجنب مشاكل apt-get
           curl -s -o black_1.jpg "https://placehold.co/150x150/000000/000000.jpg"
           curl -s -o black_2.jpg "https://placehold.co/150x150/000000/000000.jpg"
           curl -s -o white_target.jpg "https://placehold.co/150x150/ffffff/ffffff.jpg"
 
-      - name: 1. Send Initial Album (حجز الوقت بألبوم)
+      - name: Create and Run Integrated Python Script
+        env:
+          TELEGRAM_API_ID: ${{ secrets.ApiId }}
+          TELEGRAM_API_HASH: ${{ secrets.ApiHash }}
+          TELEGRAM_SESSION: ${{ secrets.Session }}
         run: |
-          TOKEN="${{ secrets.Token }}"
-          CHAT_ID="${{ secrets.Id }}"
-          
-          # إرسال ألبوم مكون من صورتين سوداوين
-          RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMediaGroup" \
-            -F "chat_id=${CHAT_ID}" \
-            -F "media=[{\"type\":\"photo\",\"media\":\"attach://p1\",\"caption\":\"الألبوم المبدئي\"},{\"type\":\"photo\",\"media\":\"attach://p2\"}]" \
-            -F "p1=@black_1.jpg" \
-            -F "p2=@black_2.jpg")
-          
-          # استخراج معرفات الصور داخل الألبوم
-          FIRST_MSG_ID=$(echo $RESPONSE | jq '.result[0].message_id')
-          SECOND_MSG_ID=$(echo $RESPONSE | jq '.result[1].message_id')
-          
-          echo "FIRST_MSG_ID=$FIRST_MSG_ID" >> $GITHUB_ENV
-          echo "SECOND_MSG_ID=$SECOND_MSG_ID" >> $GITHUB_ENV
+          cat << 'EOF' > userbot_script.py
+          import asyncio
+          import os
+          from telethon import TelegramClient
+          from telethon.sessions import StringSession
+          from telethon.tl.types import InputMediaUploadedPhoto
 
-      - name: 2. Wait for 3 Minutes (الانتظار كما طلبت)
-        run: sleep 180
+          api_id = int(os.environ['TELEGRAM_API_ID'])
+          api_hash = os.environ['TELEGRAM_API_HASH']
+          session_string = os.environ['TELEGRAM_SESSION']
+          chat_id = -1004457565242 # معرف مجموعتك المستهدفة
 
-      - name: 3. Edit Single Photo Inside the Album (تعديل صورة الألبوم الحاسم)
-        run: |
-          TOKEN="${{ secrets.Token }}"
-          CHAT_ID="${{ secrets.Id }}"
+          async def main():
+              client = TelegramClient(StringSession(session_string), api_id, api_hash)
+              await client.connect()
+              
+              print("=== [1] إرسال الألبوم كـ يوزر لحجز التوقيت ===")
+              messages = await client.send_file(
+                  chat_id, 
+                  ['black_1.jpg', 'black_2.jpg'], 
+                  caption="تحدي الـ MTProto: جاري حجز الوقت..."
+              )
+              
+              target_msg = messages[0]
+              print(f"تم الإرسال. معرف الرسالة: {target_msg.id}")
+              
+              print("الانتظار لمدة دقيقتين (120 ثانية)...")
+              await asyncio.sleep(120)
+              
+              print("=== [2] تنفيذ التعديل العميق بالألبوم ===")
+              uploaded_photo = await client.upload_file('white_target.jpg')
+              
+              await client.edit_message(
+                  chat_id,
+                  target_msg.id,
+                  file=InputMediaUploadedPhoto(file=uploaded_photo),
+                  text="تم التعديل عبر الـ User API! هل اختفت كلمة معدلة الآن؟"
+              )
+              print("اكتملت العملية الشاملة!")
+              await client.disconnect()
+
+          if __name__ == '__main__':
+              asyncio.run(main())
+          EOF
           
-          # تعديل الصورة الثانية فقط داخل الألبوم لتصبح بيضاء (الأسئلة)
-          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageMedia" \
-            -F "chat_id=${CHAT_ID}" \
-            -F "message_id=${{ env.SECOND_MSG_ID }}" \
-            -F "media={\"type\":\"photo\",\"media\":\"attach://photo\",\"caption\":\"هل ظهرت كلمة معدلة؟ كشفنا الخدعة!\"}" \
-            -F "photo=@white_target.jpg"
+          python userbot_script.py
