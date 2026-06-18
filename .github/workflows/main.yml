@@ -1,10 +1,10 @@
-name: Telegram Time Travel Test
+name: Telegram US Timezone Cheat Test
 
 on:
   [workflow_dispatch,push] # تشغيل يدوي بضغطة زر
 
 jobs:
-  time_travel_experiment:
+  timezone_experiment:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Python Environment
@@ -12,24 +12,25 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Telethon Library
-        run: pip install telethon
+      - name: Install Telethon & Pytz
+        run: pip install telethon pytz
 
       - name: Download Tiny Test Images
         run: |
-          curl -s -o past_1.jpg "https://placehold.co/150x150/ff0000/ffffff.jpg?text=Past1"
-          curl -s -o past_2.jpg "https://placehold.co/150x150/ff0000/ffffff.jpg?text=Past2"
+          curl -s -o us_1.jpg "https://placehold.co/150x150/0000ff/ffffff.jpg?text=USA1"
+          curl -s -o us_2.jpg "https://placehold.co/150x150/0000ff/ffffff.jpg?text=USA2"
 
-      - name: Create and Run Time Travel Script
+      - name: Create and Run US Timezone Script
         env:
           TELEGRAM_API_ID: ${{ secrets.ID }}
           TELEGRAM_API_HASH: ${{ secrets.HASH }}
           TELEGRAM_SESSION: ${{ secrets.SESSION }}
         run: |
-          cat << 'EOF' > time_travel_script.py
+          cat << 'EOF' > us_script.py
           import asyncio
           import os
           import datetime
+          import pytz
           from telethon import TelegramClient
           from telethon.sessions import StringSession
 
@@ -42,24 +43,25 @@ jobs:
               client = TelegramClient(StringSession(session_string), api_id, api_hash)
               await client.connect()
               
-              # حساب وقت الماضي: الوقت الحالي بالـ UTC ناقص ساعتين كاملتين!
-              past_time = datetime.datetime.utcnow() - datetime.timedelta(hours=2)
+              # جلب وقت أمريكا الحالي (نيويورك) المتأخر بـ 7 ساعات عن توقيتنا
+              us_tz = pytz.timezone('America/New_York')
+              us_time = datetime.datetime.now(us_tz)
               
-              print(f"=== [1] محاولة خداع السيرفر بجدولة رسالة للماضي عند: {past_time} UTC ===")
+              print(f"=== [1] محاولة الإرسال بتوقيت أمريكا المحلي المتأخر: {us_time} ===")
               
-              # إرسال الألبوم وتمرير تاريخ قديم بالسيرفر
+              # إرسال الألبوم مع محاولة فرض الوقت الأمريكي المتأخر في الجدولة
               await client.send_file(
                   chat_id, 
-                  ['past_1.jpg', 'past_2.jpg'], 
-                  caption="محاولة اختراق الزمن: هل نزلت بوقت الماضي؟",
-                  schedule=past_time
+                  ['us_1.jpg', 'us_2.jpg'], 
+                  caption="تجربة خداع بلد البوت (توقيت أمريكا): هل رجع الزمن؟",
+                  schedule=us_time
               )
               
-              print("تم إرسال الطلب الزمني الملعوب إلى سيرفرات تليجرام!")
+              print("تم إرسال الألبوم بنظام التوقيت الأمريكي!")
               await client.disconnect()
 
           if __name__ == '__main__':
               asyncio.run(main())
           EOF
           
-          python time_travel_script.py
+          python us_script.py
