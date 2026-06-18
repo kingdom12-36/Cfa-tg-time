@@ -1,7 +1,7 @@
 name: Telegram Stickers & Emojis Ultimate Test
 
 on:
-  workflow_dispatch:
+  [workflow_dispatch,push]
 
 jobs:
   sticker_test:
