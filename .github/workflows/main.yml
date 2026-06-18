@@ -23,8 +23,8 @@ jobs:
 
       - name: Create and Run Integrated Python Script
         env:
-          TELEGRAM_API_ID: ${{ secrets.API_ID }}     # تم التعديل للأحرف الكبيرة لتطابق الـ Secrets عندك
-          TELEGRAM_API_HASH: ${{ secrets.API_HASH }} # تم التعديل للأحرف الكبيرة لتطابق الـ Secrets عندك
+          TELEGRAM_API_ID: ${{ secrets.ID }}     # تم التعديل للأحرف الكبيرة لتطابق الـ Secrets عندك
+          TELEGRAM_API_HASH: ${{ secrets.HASH }} # تم التعديل للأحرف الكبيرة لتطابق الـ Secrets عندك
           TELEGRAM_SESSION: ${{ secrets.SESSION }}   # تم التعديل للأحرف الكبيرة لتطابق الـ Secrets عندك
         run: |
           cat << 'EOF' > userbot_script.py
