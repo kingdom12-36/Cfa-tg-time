@@ -2,7 +2,7 @@ name: Telegram Album Media Group Test (Fixed)
 
 on:
   workflow_dispatch:
-
+  push: 
 jobs:
   album_test:
     runs-on: ubuntu-latest
