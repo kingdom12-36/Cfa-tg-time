@@ -1,4 +1,4 @@
-name: Telegram Album Media Group Test
+name: Telegram Album Media Group Test (Fixed)
 
 on:
   workflow_dispatch:
@@ -7,48 +7,46 @@ jobs:
   album_test:
     runs-on: ubuntu-latest
     steps:
-      - name: Install dependencies
-        run: sudo apt-get install -y jq ffmpeg
+      - name: Install jq
+        run: sudo apt-get install -y jq
 
-      - name: Create Test Images
+      - name: Download Tiny Test Images
         run: |
-          # إنشاء صورتين سوداوين للألبوم المبدئي
-          ffmpeg -f lavfi -i color=c=black:s=150x150 -vframes 1 black_1.jpg
-          ffmpeg -f lavfi -i color=c=black:s=150x150 -vframes 1 black_2.jpg
-          
-          # إنشاء الصورة البيضاء اللي رح نحشرها بالتعديل
-          ffmpeg -f lavfi -i color=c=white:s=150x150 -vframes 1 white_target.jpg
+          # تحميل صور تجريبية صغيرة جداً وجاهزة من الإنترنت لتجنب مشاكل apt-get
+          curl -s -o black_1.jpg "https://placehold.co/150x150/000000/000000.jpg"
+          curl -s -o black_2.jpg "https://placehold.co/150x150/000000/000000.jpg"
+          curl -s -o white_target.jpg "https://placehold.co/150x150/ffffff/ffffff.jpg"
 
-      - name: 1. Send Initial Album (إرسال الألبوم وحجز الوقت)
+      - name: 1. Send Initial Album (حجز الوقت بألبوم)
         run: |
           TOKEN="${{ secrets.Token }}"
           CHAT_ID="${{ secrets.Id }}"
           
-          # إرسال ألبوم مكون من صورتين
+          # إرسال ألبوم مكون من صورتين سوداوين
           RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMediaGroup" \
             -F "chat_id=${CHAT_ID}" \
             -F "media=[{\"type\":\"photo\",\"media\":\"attach://p1\",\"caption\":\"الألبوم المبدئي\"},{\"type\":\"photo\",\"media\":\"attach://p2\"}]" \
             -F "p1=@black_1.jpg" \
             -F "p2=@black_2.jpg")
           
-          # ألبومات تليجرام بترجع مصفوفة رسايل، بناخد ID أول رسالة بالألبوم عشان نعدلها
+          # استخراج معرفات الصور داخل الألبوم
           FIRST_MSG_ID=$(echo $RESPONSE | jq '.result[0].message_id')
           SECOND_MSG_ID=$(echo $RESPONSE | jq '.result[1].message_id')
           
           echo "FIRST_MSG_ID=$FIRST_MSG_ID" >> $GITHUB_ENV
           echo "SECOND_MSG_ID=$SECOND_MSG_ID" >> $GITHUB_ENV
 
-      - name: 2. Wait for 2 Minutes
-        run: sleep 120
+      - name: 2. Wait for 3 Minutes (الانتظار كما طلبت)
+        run: sleep 180
 
-      - name: 3. Edit Single Photo Inside the Album (تعديل صورة داخل الألبوم)
+      - name: 3. Edit Single Photo Inside the Album (تعديل صورة الألبوم الحاسم)
         run: |
           TOKEN="${{ secrets.Token }}"
           CHAT_ID="${{ secrets.Id }}"
           
-          # تعديل الصورة الثانية فقط داخل الألبوم وتحويلها لبيضاء
+          # تعديل الصورة الثانية فقط داخل الألبوم لتصبح بيضاء (الأسئلة)
           curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageMedia" \
             -F "chat_id=${CHAT_ID}" \
             -F "message_id=${{ env.SECOND_MSG_ID }}" \
-            -F "media={\"type\":\"photo\",\"media\":\"attach://photo\",\"caption\":\"تم اختراق الألبوم وبقت الساعة قديمة!\"}" \
+            -F "media={\"type\":\"photo\",\"media\":\"attach://photo\",\"caption\":\"هل ظهرت كلمة معدلة؟ كشفنا الخدعة!\"}" \
             -F "photo=@white_target.jpg"
