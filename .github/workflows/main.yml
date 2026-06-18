@@ -1,7 +1,7 @@
-name: Telegram Time Fake Test
+name: Telegram Time Fake Test (Fixed)
 
 on:
-  workflow_dispatch: # تشغيل يدوياً فوراً للتجربة
+  workflow_dispatch:
 
 jobs:
   fake_time_job:
@@ -10,24 +10,23 @@ jobs:
       - name: 1. Send Initial Message (حجز الوقت)
         id: send_step
         run: |
-          # نرسل أولاً رسالة عادية أو مموهة ونحفظ الـ Message ID اللي بيرجع من تليجرام
+          # إرسال الرسالة الأولى وحفظ الرد
           RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${{ secrets.Token }}/sendMessage" \
             -d "chat_id=${{ secrets.Id }}" \
             -d "text=انتظروا الأسئلة هنا غداً...")
           
-          # استخراج الـ Message ID من رد السيرفر
+          # استخراج الـ message_id بدقة
           MSG_ID=$(echo $RESPONSE | jq '.result.message_id')
           echo "MSG_ID=$MSG_ID" >> $GITHUB_ENV
 
-      - name: 2. Wait for 2 Minutes (الانتظار)
+      - name: 2. Wait for 2 Minutes
         run: |
-          echo "الآن جيت هوب سينتظر دقيقتين (120 ثانية) والسيرفر حاجز الوقت القديم..."
-          sleep 120
+          sleep 61
 
-      - name: 3. Edit Message Content (التعديل المخفي)
+      - name: 3. Edit Message Content (التعديل الصحيح)
         run: |
-          # الآن نقوم بتعديل نفس الرسالة باستخدام الـ Message ID اللي حفظناه
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.Token }}/sendMessage" \
+          # هنا استبدلنا sendMessage بـ editMessageText للتعديل الحقيقي
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.Token }}/editMessageText" \
             -d "chat_id=${{ secrets.Id }}" \
             -d "message_id=${{ env.MSG_ID }}" \
             -d "text=أهلاً.. هذه هي الأسئلة المسربة الحقيقية!"
