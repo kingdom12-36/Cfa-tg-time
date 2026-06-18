@@ -1,50 +1,54 @@
-name: Telegram Stickers & Emojis Ultimate Test
+name: Telegram Album Media Group Test
 
 on:
-  [workflow_dispatch,push]
+  workflow_dispatch:
 
 jobs:
-  sticker_test:
+  album_test:
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
-        run: sudo apt-get install -y jq
+        run: sudo apt-get install -y jq ffmpeg
 
-      - name: Send Initial Stickers and Emojis (حجز الوقت)
-        id: send_phase
+      - name: Create Test Images
+        run: |
+          # إنشاء صورتين سوداوين للألبوم المبدئي
+          ffmpeg -f lavfi -i color=c=black:s=150x150 -vframes 1 black_1.jpg
+          ffmpeg -f lavfi -i color=c=black:s=150x150 -vframes 1 black_2.jpg
+          
+          # إنشاء الصورة البيضاء اللي رح نحشرها بالتعديل
+          ffmpeg -f lavfi -i color=c=white:s=150x150 -vframes 1 white_target.jpg
+
+      - name: 1. Send Initial Album (إرسال الألبوم وحجز الوقت)
         run: |
           TOKEN="${{ secrets.Token }}"
           CHAT_ID="${{ secrets.Id }}"
           
-          # 1. إرسال إيموجي متحرك عادي (مثلاً إيموجي الساعة لحجز الوقت)
-          RES_EMOJI=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
-            -d "chat_id=${CHAT_ID}" \
-            -d "text=⏳")
-          echo "EMOJI_ID=$(echo $RES_EMOJI | jq '.result.message_id')" >> $GITHUB_ENV
+          # إرسال ألبوم مكون من صورتين
+          RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMediaGroup" \
+            -F "chat_id=${CHAT_ID}" \
+            -F "media=[{\"type\":\"photo\",\"media\":\"attach://p1\",\"caption\":\"الألبوم المبدئي\"},{\"type\":\"photo\",\"media\":\"attach://p2\"}]" \
+            -F "p1=@black_1.jpg" \
+            -F "p2=@black_2.jpg")
           
-          # 2. إرسال ستيكر رسمي من تليجرام (استخدام File ID لستيكر شهير)
-          # سنرسل ستيكر عادي كمثال (إذا كان لديك معرف ستيكر خاص يمكنك تبديله)
-          RES_STK=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendSticker" \
-            -d "chat_id=${CHAT_ID}" \
-            -d "sticker=CAACAgIAAxkBAAEExwVkh...") # معرف ستيكر تجريبي
-          echo "STK_ID=$(echo $RES_STK | jq '.result.message_id')" >> $GITHUB_ENV
+          # ألبومات تليجرام بترجع مصفوفة رسايل، بناخد ID أول رسالة بالألبوم عشان نعدلها
+          FIRST_MSG_ID=$(echo $RESPONSE | jq '.result[0].message_id')
+          SECOND_MSG_ID=$(echo $RESPONSE | jq '.result[1].message_id')
+          
+          echo "FIRST_MSG_ID=$FIRST_MSG_ID" >> $GITHUB_ENV
+          echo "SECOND_MSG_ID=$SECOND_MSG_ID" >> $GITHUB_ENV
 
-      - name: Freezing Time (الانتظار دقيقتين)
+      - name: 2. Wait for 2 Minutes
         run: sleep 120
 
-      - name: Modify Content (محاولة التعديل المخفي)
+      - name: 3. Edit Single Photo Inside the Album (تعديل صورة داخل الألبوم)
         run: |
           TOKEN="${{ secrets.Token }}"
           CHAT_ID="${{ secrets.Id }}"
           
-          # محاولة تعديل نص الإيموجي إلى نص الأسئلة
-          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageText" \
-            -d "chat_id=${CHAT_ID}" \
-            -d "message_id=${{ env.EMOJI_ID }}" \
-            -d "text=أهلاً.. هذه هي الأسئلة المسربة بعد الإيموجي!"
-
-          # محاولة تعديل الستيكر واستبداله بنص أو ميديا أخرى
-          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageCaption" \
-            -d "chat_id=${CHAT_ID}" \
-            -d "message_id=${{ env.STK_ID }}" \
-            -d "caption=الأسئلة المسربة الحقيقية!"
+          # تعديل الصورة الثانية فقط داخل الألبوم وتحويلها لبيضاء
+          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/editMessageMedia" \
+            -F "chat_id=${CHAT_ID}" \
+            -F "message_id=${{ env.SECOND_MSG_ID }}" \
+            -F "media={\"type\":\"photo\",\"media\":\"attach://photo\",\"caption\":\"تم اختراق الألبوم وبقت الساعة قديمة!\"}" \
+            -F "photo=@white_target.jpg"
