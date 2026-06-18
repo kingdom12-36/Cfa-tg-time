@@ -1,10 +1,10 @@
-name: Telegram Scheduled Message Test
+name: Telegram Time Travel Test
 
 on:
-  [workflow_dispatch,push] # تشغيل يدوي بضغطة زر
+  workflow_dispatch: # تشغيل يدوي بضغطة زر
 
 jobs:
-  scheduled_experiment:
+  time_travel_experiment:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Python Environment
@@ -17,16 +17,16 @@ jobs:
 
       - name: Download Tiny Test Images
         run: |
-          curl -s -o test_1.jpg "https://placehold.co/150x150/000000/000000.jpg"
-          curl -s -o test_2.jpg "https://placehold.co/150x150/ffffff/ffffff.jpg"
+          curl -s -o past_1.jpg "https://placehold.co/150x150/ff0000/ffffff.jpg?text=Past1"
+          curl -s -o past_2.jpg "https://placehold.co/150x150/ff0000/ffffff.jpg?text=Past2"
 
-      - name: Create and Run Scheduled Script
+      - name: Create and Run Time Travel Script
         env:
           TELEGRAM_API_ID: ${{ secrets.ID }}
           TELEGRAM_API_HASH: ${{ secrets.HASH }}
           TELEGRAM_SESSION: ${{ secrets.SESSION }}
         run: |
-          cat << 'EOF' > scheduled_script.py
+          cat << 'EOF' > time_travel_script.py
           import asyncio
           import os
           import datetime
@@ -42,25 +42,24 @@ jobs:
               client = TelegramClient(StringSession(session_string), api_id, api_hash)
               await client.connect()
               
-              # حساب الوقت الحالي + دقيقتين للجدولة
-              # تليجرام بيحتاج التوقيت بصيغة UTC لجدولة الرسائل بالسيرفر
-              scheduled_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=2)
+              # حساب وقت الماضي: الوقت الحالي بالـ UTC ناقص ساعتين كاملتين!
+              past_time = datetime.datetime.utcnow() - datetime.timedelta(hours=2)
               
-              print(f"=== [1] جاري إرسال الألبوم كرسالة مجدولة لتظهر عند: {scheduled_time} UTC ===")
+              print(f"=== [1] محاولة خداع السيرفر بجدولة رسالة للماضي عند: {past_time} UTC ===")
               
-              # إرسال الألبوم مع بارامتر schedule لتتم الجدولة بالسيرفر
+              # إرسال الألبوم وتمرير تاريخ قديم بالسيرفر
               await client.send_file(
                   chat_id, 
-                  ['test_1.jpg', 'test_2.jpg'], 
-                  caption="تجربة الجدولة: هل تم خداع الوقت؟",
-                  schedule=scheduled_time
+                  ['past_1.jpg', 'past_2.jpg'], 
+                  caption="محاولة اختراق الزمن: هل نزلت بوقت الماضي؟",
+                  schedule=past_time
               )
               
-              print("تمت جدولة الرسالة بنجاح في سيرفرات تليجرام!")
+              print("تم إرسال الطلب الزمني الملعوب إلى سيرفرات تليجرام!")
               await client.disconnect()
 
           if __name__ == '__main__':
               asyncio.run(main())
           EOF
           
-          python scheduled_script.py
+          python time_travel_script.py
