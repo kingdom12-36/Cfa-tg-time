@@ -1,18 +1,33 @@
-name: Send Scheduled Telegram Message
+name: Telegram Time Fake Test
 
 on:
-  schedule:
-    # 00:00 UTC تعادل تماماً 03:00 صباحاً بتوقيت سوريا والسعودية (GMT+3)
-    - cron: '0 0 * * *'
-  workflow_dispatch: # لتجربة السكربت يدوياً في أي وقت
+  workflow_dispatch: # تشغيل يدوياً فوراً للتجربة
 
 jobs:
-  send_msg:
+  fake_time_job:
     runs-on: ubuntu-latest
     steps:
-      - name: Send Message via Telegram Bot
+      - name: 1. Send Initial Message (حجز الوقت)
+        id: send_step
         run: |
+          # نرسل أولاً رسالة عادية أو مموهة ونحفظ الـ Message ID اللي بيرجع من تليجرام
+          RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${{ secrets.Token }}/sendMessage" \
+            -d "chat_id=${{ secrets.Id }}" \
+            -d "text=انتظروا الأسئلة هنا غداً...")
+          
+          # استخراج الـ Message ID من رد السيرفر
+          MSG_ID=$(echo $RESPONSE | jq '.result.message_id')
+          echo "MSG_ID=$MSG_ID" >> $GITHUB_ENV
+
+      - name: 2. Wait for 2 Minutes (الانتظار)
+        run: |
+          echo "الآن جيت هوب سينتظر دقيقتين (120 ثانية) والسيرفر حاجز الوقت القديم..."
+          sleep 120
+
+      - name: 3. Edit Message Content (التعديل المخفي)
+        run: |
+          # الآن نقوم بتعديل نفس الرسالة باستخدام الـ Message ID اللي حفظناه
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.Token }}/sendMessage" \
             -d "chat_id=${{ secrets.Id }}" \
-            -d "text=مرحبا"
-
+            -d "message_id=${{ env.MSG_ID }}" \
+            -d "text=أهلاً.. هذه هي الأسئلة المسربة الحقيقية!"
