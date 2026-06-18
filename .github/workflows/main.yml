@@ -1,0 +1,18 @@
+name: Send Scheduled Telegram Message
+
+on:
+  schedule:
+    # 00:00 UTC تعادل تماماً 03:00 صباحاً بتوقيت سوريا والسعودية (GMT+3)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # لتجربة السكربت يدوياً في أي وقت
+
+jobs:
+  send_msg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Message via Telegram Bot
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.Token }}/sendMessage" \
+            -d "chat_id=${{ secrets.Id }}" \
+            -d "text=مرحبا"
+
