@@ -1,10 +1,10 @@
-name: Telegram UserBot MTProto Test (All-in-One)
+name: Telegram Scheduled Message Test
 
 on:
-  [workflow_dispatch,push] # تشغيل يدوي بضغطة زر واحدة
+  [workflow_dispatch,push] # تشغيل يدوي بضغطة زر
 
 jobs:
-  userbot_experiment:
+  scheduled_experiment:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Python Environment
@@ -17,59 +17,50 @@ jobs:
 
       - name: Download Tiny Test Images
         run: |
-          curl -s -o black_1.jpg "https://placehold.co/150x150/000000/000000.jpg"
-          curl -s -o black_2.jpg "https://placehold.co/150x150/000000/000000.jpg"
-          curl -s -o white_target.jpg "https://placehold.co/150x150/ffffff/ffffff.jpg"
+          curl -s -o test_1.jpg "https://placehold.co/150x150/000000/000000.jpg"
+          curl -s -o test_2.jpg "https://placehold.co/150x150/ffffff/ffffff.jpg"
 
-      - name: Create and Run Integrated Python Script
+      - name: Create and Run Scheduled Script
         env:
-          TELEGRAM_API_ID: ${{ secrets.ID }}     # تم التعديل للأحرف الكبيرة لتطابق الـ Secrets عندك
-          TELEGRAM_API_HASH: ${{ secrets.HASH }} # تم التعديل للأحرف الكبيرة لتطابق الـ Secrets عندك
-          TELEGRAM_SESSION: ${{ secrets.SESSION }}   # تم التعديل للأحرف الكبيرة لتطابق الـ Secrets عندك
+          TELEGRAM_API_ID: ${{ secrets.ID }}
+          TELEGRAM_API_HASH: ${{ secrets.HASH }}
+          TELEGRAM_SESSION: ${{ secrets.SESSION }}
         run: |
-          cat << 'EOF' > userbot_script.py
+          cat << 'EOF' > scheduled_script.py
           import asyncio
           import os
+          import datetime
           from telethon import TelegramClient
           from telethon.sessions import StringSession
-          from telethon.tl.types import InputMediaUploadedPhoto
 
           api_id = int(os.environ['TELEGRAM_API_ID'])
           api_hash = os.environ['TELEGRAM_API_HASH']
           session_string = os.environ['TELEGRAM_SESSION']
-          chat_id = -1004457565242 # معرف مجموعتك المستهدفة
+          chat_id = -1004457565242 # معرف مجموعتك
 
           async def main():
               client = TelegramClient(StringSession(session_string), api_id, api_hash)
               await client.connect()
               
-              print("=== [1] إرسال الألبوم كـ يوزر لحجز التوقيت ===")
-              messages = await client.send_file(
+              # حساب الوقت الحالي + دقيقتين للجدولة
+              # تليجرام بيحتاج التوقيت بصيغة UTC لجدولة الرسائل بالسيرفر
+              scheduled_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=2)
+              
+              print(f"=== [1] جاري إرسال الألبوم كرسالة مجدولة لتظهر عند: {scheduled_time} UTC ===")
+              
+              # إرسال الألبوم مع بارامتر schedule لتتم الجدولة بالسيرفر
+              await client.send_file(
                   chat_id, 
-                  ['black_1.jpg', 'black_2.jpg'], 
-                  caption="تحدي الـ MTProto: جاري حجز الوقت..."
+                  ['test_1.jpg', 'test_2.jpg'], 
+                  caption="تجربة الجدولة: هل تم خداع الوقت؟",
+                  schedule=scheduled_time
               )
               
-              target_msg = messages[0]
-              print(f"تم الإرسال. معرف الرسالة: {target_msg.id}")
-              
-              print("الانتظار لمدة دقيقتين (120 ثانية)...")
-              await asyncio.sleep(120)
-              
-              print("=== [2] تنفيذ التعديل العميق بالألبوم ===")
-              uploaded_photo = await client.upload_file('white_target.jpg')
-              
-              await client.edit_message(
-                  chat_id,
-                  target_msg.id,
-                  file=InputMediaUploadedPhoto(file=uploaded_photo),
-                  text="تم التعديل عبر الـ User API! هل اختفت كلمة معدلة الآن؟"
-              )
-              print("اكتملت العملية الشاملة!")
+              print("تمت جدولة الرسالة بنجاح في سيرفرات تليجرام!")
               await client.disconnect()
 
           if __name__ == '__main__':
               asyncio.run(main())
           EOF
           
-          python userbot_script.py
+          python scheduled_script.py
